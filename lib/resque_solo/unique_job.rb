@@ -14,8 +14,8 @@ module Resque
         # a hash containing :class and :args
         def redis_key(payload)
           payload = Resque.decode(Resque.encode(payload))
-          job  = payload["class"]
-          args = payload["args"]
+          job  = payload['class']
+          args = respond_to?(:unique_args) ? unique_args(payload['args']) : payload['args']
           args.map! do |arg|
             arg.is_a?(Hash) ? arg.sort : arg
           end

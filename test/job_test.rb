@@ -106,4 +106,19 @@ class JobTest < MiniTest::Spec
     assert_in_delta UniqueJobWithLock.lock_after_execution_period,
                     Resque.redis.ttl(keys.first), 2
   end
+
+  it "enqueues one job with equivalent args from unique_args" do
+    Resque.enqueue UniqueJobWithDynamicUniqueArgs, "x", "y"
+    Resque.enqueue UniqueJobWithDynamicUniqueArgs, "x", "z"
+    assert_equal 1, Resque.size(:unique)
+  end
+
+  it "reports if a unique job with unique_args is enqueued" do
+    Resque.enqueue UniqueJobWithDynamicUniqueArgs, "x", "y"
+    Resque.enqueue UniqueJobWithDynamicUniqueArgs, "a", "b"
+    assert Resque.enqueued?(UniqueJobWithDynamicUniqueArgs, "x")
+    assert Resque.enqueued?(UniqueJobWithDynamicUniqueArgs, "a")
+    refute Resque.enqueued?(UniqueJobWithDynamicUniqueArgs, "y")
+    refute Resque.enqueued?(UniqueJobWithDynamicUniqueArgs, "b")
+  end
 end
