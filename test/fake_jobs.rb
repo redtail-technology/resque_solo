@@ -38,3 +38,15 @@ class UniqueJobWithLock
   def self.perform(*_)
   end
 end
+
+class UniqueJobWithDynamicUniqueArgs
+  include Resque::Plugins::UniqueJob
+  @queue = :unique
+
+  def self.unique_args(args)
+    [args[0]]
+  end
+
+  def self.perform(*_)
+  end
+end

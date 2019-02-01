@@ -50,13 +50,15 @@ module ResqueSolo
       end
 
       def destroy(queue, klass, *args)
-        klass = klass.to_s
+        klass_name = klass.to_s
         redis_queue = "queue:#{queue}"
+        processed_args = process_args(klass, args)
 
         redis.lrange(redis_queue, 0, -1).each do |string|
           json = Resque.decode(string)
-          next unless json["class"] == klass
-          next if args.any? && json["args"] != args
+          json_args = process_args(klass, json["args"])
+          next unless json["class"] == klass_name
+          next if processed_args.any? && json_args != processed_args
           ResqueSolo::Queue.mark_unqueued(queue, json)
         end
       end
@@ -82,6 +84,10 @@ module ResqueSolo
 
       def const_for(item)
         Resque::Job.new(nil, nil).constantize item_class(item)
+      end
+
+      def process_args(klass, args)
+        klass.respond_to?(:unique_args) ? klass.unique_args(args) : args
       end
     end
   end
