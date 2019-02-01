@@ -107,27 +107,39 @@ class JobTest < MiniTest::Spec
                     Resque.redis.ttl(keys.first), 2
   end
 
-  it "enqueues one job with equivalent args from unique_args" do
-    Resque.enqueue UniqueJobWithDynamicUniqueArgs, "x", "y"
-    Resque.enqueue UniqueJobWithDynamicUniqueArgs, "x", "z"
-    assert_equal 1, Resque.size(:unique)
+  it "given args and string metadata returns args with metadata" do
+    Resque.enqueue FakeUniqueJob, "foo", "metadata" => { "foo" => "bar" }
+    job = Resque.reserve(:unique)
+
+    payload = {
+      "class" => "FakeUniqueJob",
+      "args" => ["foo", { "metadata" => { "foo" => "bar" } }]
+    }
+
+    assert_equal payload, job.payload
   end
 
-  it "reports if a unique job with unique_args is enqueued" do
-    Resque.enqueue UniqueJobWithDynamicUniqueArgs, "x", "y"
-    Resque.enqueue UniqueJobWithDynamicUniqueArgs, "a", "b"
-    assert Resque.enqueued?(UniqueJobWithDynamicUniqueArgs, "x")
-    assert Resque.enqueued?(UniqueJobWithDynamicUniqueArgs, "a")
-    refute Resque.enqueued?(UniqueJobWithDynamicUniqueArgs, "y")
-    refute Resque.enqueued?(UniqueJobWithDynamicUniqueArgs, "b")
+  it "given args and symbolized metadata returns args with metadata" do
+    Resque.enqueue FakeUniqueJob, "foo", metadata: { foo: "bar" }
+    job = Resque.reserve(:unique)
+
+    payload = {
+      "class" => "FakeUniqueJob",
+      "args" => ["foo", { "metadata" => { "foo" => "bar" } }]
+    }
+
+    assert_equal payload, job.payload
   end
 
-  it "reports if a unique job with unique_args is enqueued" do
-    Resque.enqueue UniqueJobWithDynamicUniqueArgs, "x", "y"
-    Resque.enqueue UniqueJobWithDynamicUniqueArgs, "a", "b"
-    assert Resque.enqueued?(UniqueJobWithDynamicUniqueArgs, "x")
-    assert Resque.enqueued?(UniqueJobWithDynamicUniqueArgs, "a")
-    refute Resque.enqueued?(UniqueJobWithDynamicUniqueArgs, "y")
-    refute Resque.enqueued?(UniqueJobWithDynamicUniqueArgs, "b")
+  it "given args and no metadata returns args without metadata" do
+    Resque.enqueue FakeUniqueJob, "foo"
+    job = Resque.reserve(:unique)
+
+    payload = {
+      "class" => "FakeUniqueJob",
+      "args" => ["foo"]
+    }
+
+    assert_equal payload, job.payload
   end
 end
