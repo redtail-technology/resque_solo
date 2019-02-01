@@ -5,7 +5,10 @@ module Resque
     class << self
       # Mark an item as queued
       def create_solo(queue, klass, *args)
-        item = { class: klass.to_s, args: args }
+
+        data_args, metadata_args = parse_args(args)
+
+        item = { class: klass.to_s, args: data_args }
         if Resque.inline? || !ResqueSolo::Queue.is_unique?(item)
           return create_without_solo(queue, klass, *args)
         end
@@ -13,16 +16,29 @@ module Resque
         create_return_value = false
         # redis transaction block
         Resque.redis.multi do
-          create_return_value = create_without_solo(queue, klass, *args)
-          ResqueSolo::Queue.mark_queued(queue, item)
+          create_return_value = create_without_solo(queue, klass, *data_args)
+          ResqueSolo::Queue.mark_queued(queue, item, metadata_args)
         end
         create_return_value
+      end
+
+      def parse_args(args)
+        if args.last.is_a?(Hash) && (args.last.key?(:metadata) || args.last.key?('metadata'))
+          [args[0..-2], (args.last[:metadata] || args.last['metadata'])]
+        else
+          [args, {}]
+        end
       end
 
       # Mark an item as unqueued
       def reserve_solo(queue)
         item = reserve_without_solo(queue)
-        ResqueSolo::Queue.mark_unqueued(queue, item) if item && !Resque.inline?
+        return item unless item && !Resque.inline?
+
+        metadata = ResqueSolo::Queue.mark_unqueued(queue, item)
+        if metadata.is_a?(String)
+          item.payload["args"] << { "metadata" => JSON.parse(metadata) }
+        end
         item
       end
 

@@ -5,13 +5,13 @@ module ResqueSolo
     class << self
       def queued?(queue, item)
         return false unless is_unique?(item)
-        redis.get(unique_key(queue, item)) == "1"
+        redis.get(unique_key(queue, item)) != nil
       end
 
-      def mark_queued(queue, item)
+      def mark_queued(queue, item, metadata)
         return unless is_unique?(item)
         key = unique_key(queue, item)
-        redis.set(key, 1)
+        redis.set(key, metadata.to_json)
         ttl = item_ttl(item)
         redis.expire(key, ttl) if ttl >= 0
       end
@@ -20,8 +20,10 @@ module ResqueSolo
         item = job.is_a?(Resque::Job) ? job.payload : job
         return unless is_unique?(item)
         ttl = lock_after_execution_period(item)
+        metadata = redis.get(unique_key(queue, item))
         if ttl == 0
           redis.del(unique_key(queue, item))
+          metadata
         else
           redis.expire(unique_key(queue, item), ttl)
         end

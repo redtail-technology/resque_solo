@@ -17,18 +17,6 @@ class ResqueTest < MiniTest::Spec
     assert_equal 2, Resque.size(:normal)
   end
 
-  it "dequeues jobs with unique_args defined" do
-    Resque.enqueue UniqueJobWithDynamicUniqueArgs, "x", "y"
-    Resque.dequeue UniqueJobWithDynamicUniqueArgs, "x"
-    refute Resque.enqueued?(UniqueJobWithDynamicUniqueArgs, "x")
-  end
-
-  it "dequeues jobs without unique_args defined" do
-    Resque.enqueue FakeUniqueJob, "x"
-    Resque.dequeue FakeUniqueJob, "x"
-    refute Resque.enqueued?(FakeUniqueJob, "x")
-  end
-
   it "is not able to report if a non-unique job was enqueued" do
     assert_nil Resque.enqueued?(FakeJob)
   end
