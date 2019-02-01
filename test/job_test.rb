@@ -121,4 +121,13 @@ class JobTest < MiniTest::Spec
     refute Resque.enqueued?(UniqueJobWithDynamicUniqueArgs, "y")
     refute Resque.enqueued?(UniqueJobWithDynamicUniqueArgs, "b")
   end
+
+  it "reports if a unique job with unique_args is enqueued" do
+    Resque.enqueue UniqueJobWithDynamicUniqueArgs, "x", "y"
+    Resque.enqueue UniqueJobWithDynamicUniqueArgs, "a", "b"
+    assert Resque.enqueued?(UniqueJobWithDynamicUniqueArgs, "x")
+    assert Resque.enqueued?(UniqueJobWithDynamicUniqueArgs, "a")
+    refute Resque.enqueued?(UniqueJobWithDynamicUniqueArgs, "y")
+    refute Resque.enqueued?(UniqueJobWithDynamicUniqueArgs, "b")
+  end
 end
