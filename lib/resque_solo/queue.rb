@@ -11,7 +11,7 @@ module ResqueSolo
       def mark_queued(queue, item, metadata)
         return unless is_unique?(item)
         key = unique_key(queue, item)
-        redis.set(key, metadata.to_json)
+        redis.set(key, metadata.nil? ? 1 : metadata.to_json)
         ttl = item_ttl(item)
         redis.expire(key, ttl) if ttl >= 0
       end
@@ -23,7 +23,7 @@ module ResqueSolo
         metadata = redis.get(unique_key(queue, item))
         if ttl == 0
           redis.del(unique_key(queue, item))
-          metadata
+          metadata == '1' ? true : metadata
         else
           redis.expire(unique_key(queue, item), ttl)
         end
@@ -52,15 +52,13 @@ module ResqueSolo
       end
 
       def destroy(queue, klass, *args)
-        klass_name = klass.to_s
+        klass = klass.to_s
         redis_queue = "queue:#{queue}"
-        processed_args = process_args(klass, args)
 
         redis.lrange(redis_queue, 0, -1).each do |string|
           json = Resque.decode(string)
-          json_args = process_args(klass, json["args"])
-          next unless json["class"] == klass_name
-          next if processed_args.any? && json_args != processed_args
+          next unless json["class"] == klass
+          next if args.any? && json["args"] != args
           ResqueSolo::Queue.mark_unqueued(queue, json)
         end
       end
@@ -86,10 +84,6 @@ module ResqueSolo
 
       def const_for(item)
         Resque::Job.new(nil, nil).constantize item_class(item)
-      end
-
-      def process_args(klass, args)
-        klass.respond_to?(:unique_args) ? klass.unique_args(args) : args
       end
     end
   end

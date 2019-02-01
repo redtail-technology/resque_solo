@@ -5,7 +5,6 @@ module Resque
     class << self
       # Mark an item as queued
       def create_solo(queue, klass, *args)
-
         data_args, metadata_args = parse_args(args)
 
         item = { class: klass.to_s, args: data_args }
@@ -26,7 +25,7 @@ module Resque
         if args.last.is_a?(Hash) && (args.last.key?(:metadata) || args.last.key?('metadata'))
           [args[0..-2], (args.last[:metadata] || args.last['metadata'])]
         else
-          [args, {}]
+          [args, nil]
         end
       end
 

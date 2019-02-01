@@ -130,4 +130,16 @@ class JobTest < MiniTest::Spec
 
     assert_equal payload, job.payload
   end
+
+  it "given args and no metadata returns args without metadata" do
+    Resque.enqueue FakeUniqueJob, "foo"
+    job = Resque.reserve(:unique)
+
+    payload = {
+      "class" => "FakeUniqueJob",
+      "args" => ["foo"]
+    }
+
+    assert_equal payload, job.payload
+  end
 end
