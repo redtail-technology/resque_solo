@@ -142,4 +142,40 @@ class JobTest < MiniTest::Spec
 
     assert_equal payload, job.payload
   end
+
+  it "given hash args returns args with metadata" do
+    Resque.enqueue FakeUniqueJob, foo: "foo", bar: "bar", metadata: { foo: "foo" }
+    job = Resque.reserve(:unique)
+
+    payload = {
+      "class" => "FakeUniqueJob",
+      "args" => [{ "foo" => "foo", "bar" => "bar"}, { "metadata" => { "foo" => "foo" }}]
+    }
+
+    assert_equal payload, job.payload
+  end
+
+  it "given normal job with primitive args returns unaltered args" do
+    Resque.enqueue FakeJob, "foo"
+    job = Resque.reserve(:normal)
+
+    payload = {
+      "class" => "FakeJob",
+      "args" => ["foo"]
+    }
+
+    assert_equal payload, job.payload
+  end
+
+  it "given normal job with named arguments returns unaltered args" do
+    Resque.enqueue FakeJob, "foo", "bar", foo: "foo", bar: "bar", "baz" => "baz"
+    job = Resque.reserve(:normal)
+
+    payload = {
+      "class" => "FakeJob",
+      "args" => ["foo", "bar", { "foo" => "foo", "bar" => "bar", "baz" => "baz" }]
+    }
+
+    assert_equal payload, job.payload
+  end
 end
