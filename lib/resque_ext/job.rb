@@ -23,7 +23,12 @@ module Resque
 
       def parse_args(args)
         if args.last.is_a?(Hash) && (args.last.key?(:metadata) || args.last.key?('metadata'))
-          [args[0..-2], (args.last[:metadata] || args.last['metadata'])]
+          metadata = args.last.delete(:metadata) || args.last.delete('metadata')
+          if args.length == 1
+            [args, metadata]
+          else
+            [args[0..-2], metadata]
+          end
         else
           [args, nil]
         end
