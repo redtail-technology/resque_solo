@@ -149,7 +149,7 @@ class JobTest < MiniTest::Spec
 
     payload = {
       "class" => "FakeUniqueJob",
-      "args" => [{ "foo" => "foo", "bar" => "bar"}, { "metadata" => { "foo" => "foo" }}]
+      "args" => [{ "foo" => "foo", "bar" => "bar", "metadata" => { "foo" => "foo" }}]
     }
 
     assert_equal payload, job.payload

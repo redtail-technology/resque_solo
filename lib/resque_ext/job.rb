@@ -41,7 +41,12 @@ module Resque
 
         metadata = ResqueSolo::Queue.mark_unqueued(queue, item)
         if metadata.is_a?(String)
-          item.payload["args"] << { "metadata" => JSON.parse(metadata) }
+          last_arg = item.payload["args"].last
+          if last_arg.is_a?(Hash)
+            last_arg["metadata"] = JSON.parse(metadata)
+          else
+            item.payload["args"] << { "metadata" => JSON.parse(metadata) }
+          end
         end
         item
       end
