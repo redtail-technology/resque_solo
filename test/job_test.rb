@@ -178,4 +178,16 @@ class JobTest < MiniTest::Spec
 
     assert_equal payload, job.payload
   end
+
+  it "given normal job with named arguments and metadata returns unaltered args" do
+    Resque.enqueue FakeJob, foo: "foo", metadata: { bar: "bar" }
+    job = Resque.reserve(:normal)
+
+    payload = {
+      "class" => "FakeJob",
+      "args" => [{ "foo" => "foo", "metadata" => { "bar" => "bar" }}]
+    }
+
+    assert_equal payload, job.payload
+  end
 end
