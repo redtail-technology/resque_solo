@@ -19,15 +19,13 @@ class JobTest < MiniTest::Spec
     # chance to execute.
     enqueue_job = Resque::Job.method(:enqueue_job)
     enqueue_job_stub = lambda do |*args|
-      sleep 0.1
+      sleep 0.01
       enqueue_job.call(*args)
     end
 
     Resque::Job.stub :enqueue_job, enqueue_job_stub do
       threads = 4.times.map do
-        Thread.new do
-          Resque.enqueue FakeUniqueJob, "x"
-        end
+        Thread.new { Resque.enqueue FakeUniqueJob, "x" }
       end
       threads.each(&:join)
 
