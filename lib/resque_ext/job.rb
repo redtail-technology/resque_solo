@@ -20,14 +20,19 @@ module Resque
             Resque.redis.unwatch
             create_return_value = "EXISTED"
           else
-            Resque.redis.multi do
-              create_return_value = create_without_solo(queue, klass, *data_args)
-              ResqueSolo::Queue.mark_queued(queue, item, metadata_args)
-            end
+            enqueue_job(queue, item, klass, data_args, metadata_args)
           end
         end
 
         create_return_value
+      end
+
+      def enqueue_job(queue, item, klass, data_args, metadata_args)
+        Resque.redis.multi do
+          return_value = create_without_solo(queue, klass, *data_args)
+          ResqueSolo::Queue.mark_queued(queue, item, metadata_args)
+          return_value
+        end
       end
 
       def parse_args(args)
