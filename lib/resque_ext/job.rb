@@ -20,7 +20,7 @@ module Resque
             Resque.redis.unwatch
             create_return_value = "EXISTED"
           else
-            enqueue_job(queue, item, klass, data_args, metadata_args)
+            create_return_value = enqueue_job(queue, item, klass, data_args, metadata_args)
           end
         end
 
