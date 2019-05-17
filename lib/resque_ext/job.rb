@@ -13,14 +13,26 @@ module Resque
         data_args, metadata_args = parse_args(args)
         item = { class: klass.to_s, args: data_args }
 
-        return "EXISTED" if ResqueSolo::Queue.queued?(queue, item)
         create_return_value = false
-        # redis transaction block
-        Resque.redis.multi do
-          create_return_value = create_without_solo(queue, klass, *data_args)
-          ResqueSolo::Queue.mark_queued(queue, item, metadata_args)
+
+        Resque.redis.watch(ResqueSolo::Queue.unique_key(queue, item)) do
+          if ResqueSolo::Queue.queued?(queue, item)
+            Resque.redis.unwatch
+            create_return_value = "EXISTED"
+          else
+            create_return_value = enqueue_job(queue, item, klass, data_args, metadata_args)
+          end
         end
+
         create_return_value
+      end
+
+      def enqueue_job(queue, item, klass, data_args, metadata_args)
+        Resque.redis.multi do
+          return_value = create_without_solo(queue, klass, *data_args)
+          ResqueSolo::Queue.mark_queued(queue, item, metadata_args)
+          return_value
+        end
       end
 
       def parse_args(args)

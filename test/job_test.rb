@@ -13,6 +13,26 @@ class JobTest < MiniTest::Spec
     assert_equal 1, Resque.size(:unique)
   end
 
+  it "with parallel calls still enqueues identical jobs once" do
+    # Ruby threads do not run in parallel. So, to simulate parallelism we stub the enqueue_job
+    # method and add a sleep, which releases the global interpreter lock and gives other threads a
+    # chance to execute.
+    enqueue_job = Resque::Job.method(:enqueue_job)
+    enqueue_job_stub = lambda do |*args|
+      sleep 0.01
+      enqueue_job.call(*args)
+    end
+
+    Resque::Job.stub :enqueue_job, enqueue_job_stub do
+      threads = 4.times.map do
+        Thread.new { Resque.enqueue FakeUniqueJob, "x" }
+      end
+      threads.each(&:join)
+
+      assert_equal 1, Resque.size(:unique)
+    end
+  end
+
   it "allow the same jobs to be executed one after the other" do
     Resque.enqueue FakeUniqueJob, "foo"
     Resque.enqueue FakeUniqueJob, "foo"
