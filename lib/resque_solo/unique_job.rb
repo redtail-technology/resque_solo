@@ -32,20 +32,33 @@ module Resque
         #   @ttl = 40
         # end
         def ttl
-          @ttl ||= -1
+          if release_lock_after_completion && @ttl.nil?
+            # set a default ttl of 1 day for jobs with release_lock_after_completion in case
+            # the job crashes and after_perform_release_lock is never called
+            @ttl ||= 86400
+          else
+            @ttl ||= -1
+          end
         end
 
         # The default ttl of a persisting key is 0, i.e. immediately deleted.
-        # Set lock_after_execution_period to block the execution
-        # of the job for a certain amount of time (in seconds).
+        # Set release_lock_after_completion to block the execution
+        # of another job until the current one completes.
         # For example:
         #
         # class FooJob
         #   include Resque::Plugins::UniqueJob
-        #   @lock_after_execution_period = 40
+        #   @release_lock_after_completion = true
         # end
-        def lock_after_execution_period
-          @lock_after_execution_period ||= 0
+        def release_lock_after_completion
+          @release_lock_after_completion ||= false
+        end
+
+        def after_perform_release_lock(*args)
+          if release_lock_after_completion
+            key = ResqueSolo::Queue.unique_key(@queue, { class: name, args: args })
+            Resque.redis.del(key)
+          end
         end
       end
     end

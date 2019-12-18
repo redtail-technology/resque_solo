@@ -33,7 +33,7 @@ end
 class UniqueJobWithLock
   include Resque::Plugins::UniqueJob
   @queue = :unique_with_lock
-  @lock_after_execution_period = 150
+  @release_lock_after_completion = true
 
   def self.perform(*_)
   end

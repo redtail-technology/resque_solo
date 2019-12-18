@@ -108,7 +108,7 @@ class JobTest < MiniTest::Spec
     assert_in_delta UniqueJobWithTtl.ttl, Resque.redis.ttl(keys.first), 2
   end
 
-  it "prevents duplicates within lock_after_execution_period" do
+  it "prevents duplicates until completion with release_lock_after_completion" do
     Resque.enqueue UniqueJobWithLock, "foo"
     Resque.enqueue UniqueJobWithLock, "foo"
     assert_equal 1, Resque.size(:unique_with_lock)
@@ -116,15 +116,17 @@ class JobTest < MiniTest::Spec
     assert_equal 0, Resque.size(:unique_with_lock)
     Resque.enqueue UniqueJobWithLock, "foo"
     assert_equal 0, Resque.size(:unique_with_lock)
+    UniqueJobWithLock.after_perform_release_lock("foo")
+    Resque.enqueue UniqueJobWithLock, "foo"
+    assert_equal 1, Resque.size(:unique_with_lock)
   end
 
-  it "honor lock_after_execution_period in the redis key" do
+  it "honor release_lock_after_completion in the redis key" do
     Resque.enqueue UniqueJobWithLock
     Resque.reserve(:unique_with_lock)
     keys = Resque.redis.keys "solo:queue:unique_with_lock:job:*"
     assert_equal 1, keys.length
-    assert_in_delta UniqueJobWithLock.lock_after_execution_period,
-                    Resque.redis.ttl(keys.first), 2
+    assert_equal UniqueJobWithLock.ttl, Resque.redis.ttl(keys.first), 2
   end
 
   it "given args and string metadata returns args with metadata" do
