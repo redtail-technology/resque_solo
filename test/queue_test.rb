@@ -36,22 +36,22 @@ class QueueTest < MiniTest::Spec
     end
   end
 
-  describe ".lock_after_execution_period" do
-    it "is 0 for non-unique job" do
-      assert_equal 0, ResqueSolo::Queue.lock_after_execution_period(class: "FakeJob")
+  describe ".release_lock_after_completion" do
+    it "is false for non-unique job" do
+      refute ResqueSolo::Queue.release_lock_after_completion(class: "FakeJob")
     end
 
-    it "is 0 for invalid job class" do
-      assert_equal 0, ResqueSolo::Queue.lock_after_execution_period(class: "InvalidJob")
+    it "is false for invalid job class" do
+      refute ResqueSolo::Queue.release_lock_after_completion(class: "InvalidJob")
     end
 
-    it "is 0 for unique job" do
-      assert_equal 0, ResqueSolo::Queue.lock_after_execution_period(class: "FakeUniqueJob")
+    it "is false for unique job" do
+      refute ResqueSolo::Queue.release_lock_after_completion(class: "FakeUniqueJob")
     end
 
-    it "is job lock period" do
-      assert_equal 150, UniqueJobWithLock.lock_after_execution_period
-      assert_equal 150, ResqueSolo::Queue.lock_after_execution_period(class: "UniqueJobWithLock")
+    it "is true for lock after completion job" do
+      assert UniqueJobWithLock.release_lock_after_completion
+      assert ResqueSolo::Queue.release_lock_after_completion(class: "UniqueJobWithLock")
     end
   end
 end

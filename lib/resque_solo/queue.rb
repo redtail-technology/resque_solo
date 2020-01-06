@@ -19,14 +19,10 @@ module ResqueSolo
       def mark_unqueued(queue, job)
         item = job.is_a?(Resque::Job) ? job.payload : job
         return unless is_unique?(item)
-        ttl = lock_after_execution_period(item)
+        release_after = release_lock_after_completion(item)
         metadata = redis.get(unique_key(queue, item))
-        if ttl == 0
-          redis.del(unique_key(queue, item))
-          metadata == '1' ? true : metadata
-        else
-          redis.expire(unique_key(queue, item), ttl)
-        end
+        redis.del(unique_key(queue, item)) unless release_after
+        metadata == '1' ? true : metadata
       end
 
       def unique_key(queue, item)
@@ -45,10 +41,10 @@ module ResqueSolo
         -1
       end
 
-      def lock_after_execution_period(item)
-        const_for(item).lock_after_execution_period
+      def release_lock_after_completion(item)
+        const_for(item).release_lock_after_completion
       rescue NameError
-        0
+        false
       end
 
       def destroy(queue, klass, *args)
